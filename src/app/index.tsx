@@ -4,7 +4,7 @@ import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
 import { Asset } from "expo-asset"; // Import Asset
 import * as SplashScreen from "expo-splash-screen"; // Import SplashScreen
-import { styles } from "../styles/splash.styles";
+import { styles } from "../styles/screens/splash.styles";
 
 const logo = require("../../assets/images/SafeDrop_logo.png");
 
@@ -29,7 +29,7 @@ export default function SplashScreenComponent() {
 
                 // 4. Start the 2.5-second timer to navigate to home
                 setTimeout(() => {
-                    router.replace("/(tabs)/homeScreen");
+                    router.replace("/signIn");
                 }, 2500);
             }
         }

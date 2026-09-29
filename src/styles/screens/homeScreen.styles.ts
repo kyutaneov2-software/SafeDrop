@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
-import { COLORS } from "../theme/colors";
+import { COLORS } from "../../theme/colors";
+import { SHADOWS } from "../../theme/shadow";
 
 export const styles = StyleSheet.create({
     container: {
@@ -14,6 +15,8 @@ export const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
+
+
     },
     headerTitle: {
         color: COLORS.white,
@@ -24,16 +27,12 @@ export const styles = StyleSheet.create({
         padding: 20,
     },
     card: {
-        backgroundColor: COLORS.card, // Pure White #FFFFFF
+        backgroundColor: COLORS.background, // Pure White #FFFFFF
         borderRadius: 16,
         padding: 20,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
         borderWidth: 1,
         borderColor: "#F1F5F9",
+        ...SHADOWS.card,
     },
     cardHeader: {
         flexDirection: "row",
@@ -42,7 +41,7 @@ export const styles = StyleSheet.create({
         marginBottom: 12,
     },
     cardTitle: {
-        color: COLORS.text, // Slate #1E293B
+        color: COLORS.textPrimary, // Slate #1E293B
         fontSize: 18,
         fontWeight: "700",
     },
@@ -67,7 +66,7 @@ export const styles = StyleSheet.create({
         fontWeight: "600",
     },
     cardSubtitle: {
-        color: COLORS.textMuted,
+        color: COLORS.textSecondary,
         fontSize: 14,
         marginBottom: 4,
     },

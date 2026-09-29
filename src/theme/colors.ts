@@ -1,18 +1,36 @@
 export const COLORS = {
-    // Primary Brand Color
-    primary: '#0EA5E9', // Light Blue
-    
-    // Action & Success Colors
-    success: '#10B981', // Green
-    
+    // Brand Colors
+    primary: "#0EA5E9",
+    primaryDark: "#0284C7",
+    primaryLight: "#38BDF8",
+
+    // Security / Trust
+    navy: "#0F172A",
+
+    // Success
+    success: "#10B981",
+    successLight: "#D1FAE5",
+
+    // Warnings
+    warning: "#F59E0B",
+
+    // Error
+    danger: "#EF4444",
+
     // Backgrounds
-    background: '#F8FAFC', // Ice White (Use for main screens)
-    card: '#FFFFFF',       // Pure White (Use for UI cards, stands out on Ice White)
-    
-    // Typography
-    text: '#1E293B',       // Slate (Main readable text)
-    textMuted: '#64748B',  // A lighter slate for subtitles (optional addition)
-    
-    // Status Bar / Defaults
-    white: '#FFFFFF',
+    background: "#F8FAFC",
+    surface: "#FFFFFF",
+
+    // Text
+    textPrimary: "#1E293B",
+    textSecondary: "#64748B",
+    textDisabled: "#94A3B8",
+
+    // Borders
+    border: "#E2E8F0",
+
+    // Misc
+    white: "#FFFFFF",
+    black: "#000000",
 };
+
