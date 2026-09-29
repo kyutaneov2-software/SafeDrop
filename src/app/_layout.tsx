@@ -15,6 +15,8 @@ export default function RootLayout() {
                 <Stack.Screen name="index" />
                 <Stack.Screen name="signIn" />
                 <Stack.Screen name="signUp" />
+                <Stack.Screen name="totp" />
+                <Stack.Screen name="totpSetup" />
                 <Stack.Screen name="(tabs)" />
             </Stack>
         </SafeAreaProvider>
