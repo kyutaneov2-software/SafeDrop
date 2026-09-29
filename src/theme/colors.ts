@@ -15,4 +15,4 @@ export const COLORS = {
     
     // Status Bar / Defaults
     white: '#FFFFFF',
-  };
+};

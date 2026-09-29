@@ -3,10 +3,12 @@ import { View, Text, TouchableOpacity } from "react-native"; // Note: Use react-
 import { StatusBar } from "expo-status-bar";
 import { Feather } from "@expo/vector-icons";
 import { styles } from "../../styles/homeScreen.styles"; // Import separated styles
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function HomeScreen() {
+    const insets = useSafeAreaInsets();
     return (
-        <View style={styles.container}>
+        <View style={{ flex: 1, paddingTop: insets.top }}>
             <StatusBar style="light" />
 
             <View style={styles.header}>

@@ -14,24 +14,11 @@ export const styles = StyleSheet.create({
         justifyContent: "center",
         marginTop: -40,
     },
-    logoBox: {
-        width: 90,
-        height: 90,
-        borderRadius: 28,
-        backgroundColor: "rgba(255, 255, 255, 0.15)",
-        borderWidth: 1,
-        borderColor: "rgba(255, 255, 255, 0.2)",
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    logoCircle: {
-        width: 44,
-        height: 44,
-        borderRadius: 22,
-        borderWidth: 1.5,
-        borderColor: "rgba(255, 255, 255, 0.6)",
-        alignItems: "center",
-        justifyContent: "center",
+    // NEW LOGO STYLE
+    logo: {
+        width: 150, // Adjust this based on your logo's dimensions
+        height: 150, // Keep width and height equal for a square logo
+        marginBottom: 10, // Adds a little space between the logo and the "SafeDrop" text
     },
     title: {
         marginTop: 24,
