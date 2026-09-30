@@ -2,11 +2,10 @@ import React, { useEffect, useState } from "react";
 import { View, Text, Image } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { useRouter } from "expo-router";
-import { Asset } from "expo-asset"; // Import Asset
-import * as SplashScreen from "expo-splash-screen"; // Import SplashScreen
+import { Asset } from "expo-asset";
 import { styles } from "../styles/screens/splash.styles";
 
-const logo = require("../../assets/images/SafeDrop_logo.png");
+const logo = require("@/assets/images/SafeDrop_logo.png");
 
 export default function SplashScreenComponent() {
     const router = useRouter();
@@ -15,32 +14,22 @@ export default function SplashScreenComponent() {
     useEffect(() => {
         async function prepare() {
             try {
-                // 1. Preload the image into memory
                 const imageAsset = Asset.fromModule(logo);
                 await imageAsset.downloadAsync();
             } catch (e) {
                 console.warn(e);
             } finally {
-                // 2. Mark as ready
                 setIsReady(true);
-
-                // 3. Hide the native splash screen now that our image is ready
-                await SplashScreen.hideAsync();
-
-                // 4. Start the 2.5-second timer to navigate to home
+                // Navigate after 2.5 seconds
                 setTimeout(() => {
                     router.replace("/signIn");
                 }, 2500);
             }
         }
-
         prepare();
     }, []);
 
-    // Don't render anything until the image is ready (Native splash covers this)
-    if (!isReady) {
-        return null;
-    }
+    if (!isReady) return null;
 
     return (
         <View style={styles.container}>

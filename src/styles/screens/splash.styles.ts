@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import { COLORS } from "../../theme/colors";
+import { FONTS } from '../../theme/fonts'; // Import fonts
 
 export const styles = StyleSheet.create({
     container: {
@@ -23,24 +24,24 @@ export const styles = StyleSheet.create({
     title: {
         marginTop: 24,
         fontSize: 34,
-        fontWeight: "700",
+        fontFamily: FONTS.heading, // Replaced fontWeight: '700' with Poppins-Bold
         color: COLORS.white,
         letterSpacing: 0.5,
     },
     subtitle: {
         marginTop: 8,
         fontSize: 14,
-        fontWeight: "400",
+        fontFamily: FONTS.body, // Replaced fontWeight: '400' with Inter-Regular
         color: "rgba(255, 255, 255, 0.9)",
         letterSpacing: 0.5,
+    },
+    versionText: {
+        fontSize: 12,
+        fontFamily: FONTS.bodyMedium, // Replaced fontWeight: '500' with Inter-Medium
+        color: "rgba(255, 255, 255, 0.4)",
     },
     footer: {
         position: "absolute",
         bottom: 40,
-    },
-    versionText: {
-        fontSize: 12,
-        color: "rgba(255, 255, 255, 0.4)",
-        fontWeight: "500",
     },
 });

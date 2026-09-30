@@ -4,6 +4,7 @@ import { COLORS } from "@/theme/colors";
 import { SPACING } from "@/theme/spacing";
 import { RADIUS } from "@/theme/radius";
 import { SHADOWS } from "@/theme/shadow";
+import { FONTS } from "@/theme/fonts";
 
 export const styles = StyleSheet.create({
     container: {
@@ -17,27 +18,28 @@ export const styles = StyleSheet.create({
     },
     headerTitle: {
         fontSize: 32,
-        fontWeight: "bold",
+        fontFamily: FONTS.heading, // Poppins-Bold
         color: COLORS.textPrimary,
         marginBottom: SPACING.sm,
     },
     headerSubtitle: {
         fontSize: 16,
+        fontFamily: FONTS.body, // Inter-Regular
         color: COLORS.textSecondary,
         marginBottom: SPACING.xl,
+    },
+    label: {
+        fontSize: 14,
+        fontFamily: FONTS.bodyBold, // Inter-SemiBold
+        color: COLORS.textPrimary,
+        marginBottom: SPACING.xs,
+        marginTop: SPACING.md,
     },
     card: {
         backgroundColor: COLORS.surface,
         borderRadius: RADIUS.md,
         padding: SPACING.lg,
         ...SHADOWS.card,
-    },
-    label: {
-        fontSize: 14,
-        fontWeight: "600",
-        color: COLORS.textPrimary,
-        marginBottom: SPACING.xs,
-        marginTop: SPACING.md,
     },
     passwordWrapper: {
         flexDirection: "row",

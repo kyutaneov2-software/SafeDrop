@@ -1,6 +1,14 @@
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
-import { View, Text, Pressable, TextInput, ScrollView } from "react-native";
+import {
+    View,
+    Text,
+    Pressable,
+    TextInput,
+    ScrollView,
+    Alert,
+    ActivityIndicator,
+} from "react-native"; // Added Alert & ActivityIndicator
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Checkbox } from "expo-checkbox";
@@ -11,6 +19,7 @@ import { styles } from "../styles/screens/signUp.styles";
 import { COLORS } from "../theme/colors";
 import { GRADIENTS } from "../theme/gradients";
 import { SPACING } from "../theme/spacing";
+import { signUpWithEmail } from "../lib/auth"; // IMPORT THE AUTH SERVICE
 
 export default function SignUpScreen() {
     const router = useRouter();
@@ -25,8 +34,9 @@ export default function SignUpScreen() {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [confirmVisible, setConfirmVisible] = useState(false);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
+    const [isLoading, setIsLoading] = useState(false); // ADDED
 
-    // Simple password strength logic (0-4)
+    // Simple password strength logic
     const getStrength = () => {
         let score = 0;
         if (password.length >= 8) score++;
@@ -37,10 +47,58 @@ export default function SignUpScreen() {
     };
     const strength = getStrength();
 
-    const handleSignUp = () => {
-        router.replace('/totpSetup')
-        // TODO: Add your validation and API call here
-        console.log("Signing up:", { fullName, email, phone, password });
+    // ---------------------------------------------------------
+    // CONNECTED SIGN UP FUNCTION
+    // ---------------------------------------------------------
+    const handleSignUp = async () => {
+        // 1. Validation
+        if (!fullName || !email || !phone || !password) {
+            Alert.alert("Missing Fields", "Please fill in all fields.");
+            return;
+        }
+        if (password !== confirmPassword) {
+            Alert.alert("Password Mismatch", "Your passwords do not match.");
+            return;
+        }
+        if (strength < 2) {
+            Alert.alert(
+                "Weak Password",
+                "Please use a stronger password (8+ chars, with numbers & uppercase).",
+            );
+            return;
+        }
+
+        // 2. Call Supabase
+        setIsLoading(true);
+        try {
+            await signUpWithEmail({
+                email,
+                password,
+                fullName,
+                phone,
+                role: "customer",
+            });
+
+            // 3. Success! Navigate to TOTP setup
+            Alert.alert(
+                "Account Created!",
+                "Next, let's secure your account with Two-Factor Authentication.",
+                [
+                    {
+                        text: "Continue",
+                        onPress: () => router.replace("/totpSetup"),
+                    },
+                ],
+            );
+        } catch (error: any) {
+            Alert.alert(
+                "Sign Up Failed",
+                error.message || "Something went wrong.",
+            );
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -221,7 +279,7 @@ export default function SignUpScreen() {
                     <Pressable
                         style={{ marginTop: SPACING.xl }}
                         onPress={handleSignUp}
-                        disabled={!agreedToTerms}
+                        disabled={!agreedToTerms || isLoading} // Disable if loading
                     >
                         <LinearGradient
                             colors={GRADIENTS.primary}
@@ -229,12 +287,18 @@ export default function SignUpScreen() {
                             end={{ x: 1, y: 0 }}
                             style={[
                                 styles.signUpButton,
-                                !agreedToTerms && { opacity: 0.5 }, // Dim the button if terms aren't agreed
+                                (!agreedToTerms || isLoading) && {
+                                    opacity: 0.5,
+                                },
                             ]}
                         >
-                            <Text style={styles.signUpButtonText}>
-                                Create Account
-                            </Text>
+                            {isLoading ? (
+                                <ActivityIndicator color={COLORS.white} />
+                            ) : (
+                                <Text style={styles.signUpButtonText}>
+                                    Create Account
+                                </Text>
+                            )}
                         </LinearGradient>
                     </Pressable>
                 </View>

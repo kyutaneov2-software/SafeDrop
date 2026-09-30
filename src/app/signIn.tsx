@@ -1,10 +1,18 @@
 import React, { useState } from "react";
 import { useRouter } from "expo-router";
-import { View, Text, Pressable, TextInput, ScrollView } from "react-native";
+import {
+    View,
+    Text,
+    Pressable,
+    TextInput,
+    ScrollView,
+    Alert,
+    ActivityIndicator,
+} from "react-native"; // Added Alert & ActivityIndicator
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Checkbox } from "expo-checkbox";
-import { LinearGradient } from "expo-linear-gradient"; // Import Gradient
+import { LinearGradient } from "expo-linear-gradient";
 
 // Import your styles
 import { styles } from "../styles/screens/signIn.styles";
@@ -13,15 +21,47 @@ import { COLORS } from "../theme/colors";
 import { GRADIENTS } from "../theme/gradients";
 import { RADIUS } from "../theme/radius";
 import { SPACING } from "../theme/spacing";
+import { signInWithEmail } from "../lib/auth"; // IMPORT AUTH SERVICE
 
 export default function SignInScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
     // State management
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [rememberMe, setRememberMe] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
+    // ---------------------------------------------------------
+    // CONNECTED SIGN IN FUNCTION
+    // ---------------------------------------------------------
+    const handleSignIn = async () => {
+        if (!email || !password) {
+            Alert.alert(
+                "Missing Fields",
+                "Please enter your email and password.",
+            );
+            return;
+        }
+
+        setIsLoading(true);
+        try {
+            await signInWithEmail(email, password);
+            // TODO: In the future, check if TOTP is required here.
+            // For now, navigate straight to the home screen.
+            router.replace("/(tabs)/homeScreen");
+        } catch (error: any) {
+            Alert.alert(
+                "Sign In Failed",
+                error.message || "Invalid credentials.",
+            );
+            console.error(error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
     return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
             <ScrollView
@@ -52,6 +92,8 @@ export default function SignInScreen() {
                                 placeholderTextColor={COLORS.textDisabled}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
+                                value={email} // ADDED
+                                onChangeText={setEmail} // ADDED
                             />
                         </View>
                     </View>
@@ -65,6 +107,8 @@ export default function SignInScreen() {
                                 placeholder="**********"
                                 placeholderTextColor={COLORS.textDisabled}
                                 secureTextEntry={!passwordVisible}
+                                value={password} // ADDED
+                                onChangeText={setPassword} // ADDED
                             />
                             {/* FIXED: Text is now wrapped in <Text> */}
                             <Pressable
@@ -111,7 +155,8 @@ export default function SignInScreen() {
 
                     {/* SIGN IN BUTTON WITH GRADIENT */}
                     <Pressable 
-                        onPress={() => router.replace('/totp')}
+                        onPress={handleSignIn}
+                        disabled={isLoading}
                         style={{ marginTop: SPACING.xl }}>
                         <LinearGradient
                             colors={GRADIENTS.success}
@@ -122,9 +167,14 @@ export default function SignInScreen() {
                                 height: 56,
                                 justifyContent: "center",
                                 alignItems: "center",
+                                opacity: isLoading ? 0.7 : 1, // Visual feedback
                             }}
                         >
-                            <Text style={styles.signInButtonText}>Sign In</Text>
+                            {isLoading ? (
+                                <ActivityIndicator color={COLORS.white} />
+                            ) : (
+                                <Text style={styles.signInButtonText}>Sign In</Text>
+                            )}
                         </LinearGradient>
                     </Pressable>
                 </View>

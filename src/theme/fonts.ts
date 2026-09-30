@@ -1,7 +1,10 @@
-export const FONT = {
-    heading: "Poppins_700Bold",
-    subHeading: "Poppins_600SemiBold",
+export const FONTS = {
+    // Headers (Poppins)
+    heading: "Poppins-Bold",
+    subheading: "Poppins-SemiBold",
 
-    body: "Inter_400Regular",
-    medium: "Inter_500Medium",
+    // Body (Inter)
+    body: "Inter-Regular",
+    bodyMedium: "Inter-Medium",
+    bodyBold: "Inter-SemiBold",
 };
