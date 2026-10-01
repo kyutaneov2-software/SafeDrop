@@ -1,14 +1,21 @@
 import { StyleSheet } from "react-native";
+
 import { COLORS } from "@/theme/colors";
 import { SPACING } from "@/theme/spacing";
 import { RADIUS } from "@/theme/radius";
 import { SHADOWS } from "@/theme/shadow";
+import { FONTS } from "@/theme/fonts";
 
 export const styles = StyleSheet.create({
+    // =========================================================
+    // SCREEN
+    // =========================================================
+
     container: {
         flex: 1,
         backgroundColor: COLORS.background,
     },
+
     header: {
         flexDirection: "row",
         alignItems: "center",
@@ -16,89 +23,208 @@ export const styles = StyleSheet.create({
         paddingTop: SPACING.md,
         paddingBottom: SPACING.sm,
     },
+
     backButton: {
         padding: SPACING.sm,
-        marginLeft: -SPACING.sm, // Optically align the icon with the edge
+        marginLeft: -SPACING.sm,
     },
-    content: {
-        flex: 1,
+
+    scrollContent: {
+        flexGrow: 1,
         paddingHorizontal: SPACING.lg,
-        paddingTop: SPACING.xl,
-        alignItems: "center",
+        paddingBottom: SPACING.xxl,
     },
+
+    // =========================================================
+    // HEADER BLOCK
+    // =========================================================
+
+    content: {
+        alignItems: "center",
+        paddingTop: SPACING.md,
+    },
+
     iconContainer: {
-        width: 80,
-        height: 80,
+        width: 76,
+        height: 76,
         borderRadius: RADIUS.xl,
-        backgroundColor: COLORS.successLight, // Soft green background
+        backgroundColor: COLORS.successLight,
         justifyContent: "center",
         alignItems: "center",
-        marginBottom: SPACING.xl,
+        marginBottom: SPACING.lg,
         ...SHADOWS.card,
     },
+
     title: {
-        fontSize: 28,
-        fontWeight: "bold",
+        fontSize: 26,
+        fontFamily: FONTS.heading,
         color: COLORS.textPrimary,
         marginBottom: SPACING.sm,
         textAlign: "center",
     },
+
     subtitle: {
-        fontSize: 16,
+        fontSize: 15,
+        fontFamily: FONTS.body,
         color: COLORS.textSecondary,
         textAlign: "center",
-        lineHeight: 24,
+        lineHeight: 23,
+        maxWidth: 320,
         marginBottom: SPACING.xl,
     },
+
+    // =========================================================
+    // OTP INPUTS
+    // =========================================================
+
     otpContainer: {
         flexDirection: "row",
         justifyContent: "space-between",
         width: "100%",
-        marginBottom: SPACING.xl,
+        marginBottom: SPACING.md,
     },
+
     otpInput: {
         width: 48,
-        height: 56,
+        height: 58,
         backgroundColor: COLORS.surface,
         borderRadius: RADIUS.sm,
         borderWidth: 1.5,
         borderColor: COLORS.border,
         textAlign: "center",
-        fontSize: 24,
-        fontWeight: "bold",
+        fontSize: 22,
+        fontFamily: FONTS.bodyBold,
         color: COLORS.textPrimary,
         ...SHADOWS.card,
     },
+
     otpInputFocused: {
-        borderColor: COLORS.primary, // Light Blue border when focused
-        backgroundColor: "#F0F9FF", // Very light blue tint
+        borderColor: COLORS.primary,
+        backgroundColor: "#F0F9FF",
     },
-    verifyButton: {
-        width: "100%",
-        borderRadius: RADIUS.sm,
-        height: 56,
-        justifyContent: "center",
-        alignItems: "center",
-        marginTop: SPACING.md,
+
+    otpInputError: {
+        borderColor: COLORS.danger,
+        backgroundColor: "#FEF2F2",
     },
-    verifyButtonText: {
-        color: COLORS.white,
-        fontSize: 16,
-        fontWeight: "700",
-    },
-    footer: {
+
+    // =========================================================
+    // INLINE ERROR
+    // =========================================================
+
+    inlineError: {
         flexDirection: "row",
+        alignItems: "center",
         justifyContent: "center",
-        marginTop: SPACING.xl,
-        marginBottom: SPACING.xxl,
+        marginTop: SPACING.sm,
+        paddingHorizontal: SPACING.md,
     },
+
+    inlineErrorText: {
+        marginLeft: 6,
+        fontSize: 13,
+        fontFamily: FONTS.bodyMedium,
+        color: COLORS.danger,
+        textAlign: "center",
+    },
+
+    // =========================================================
+    // COUNTDOWN
+    // =========================================================
+
+    countdownRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: SPACING.lg,
+        paddingVertical: 8,
+        paddingHorizontal: SPACING.md,
+        borderRadius: RADIUS.sm,
+        backgroundColor: "#F1F5F9",
+    },
+
+    countdownText: {
+        fontSize: 13,
+        fontFamily: FONTS.body,
+        color: COLORS.textSecondary,
+        marginLeft: 6,
+    },
+
+    countdownBold: {
+        fontFamily: FONTS.bodyBold,
+        color: COLORS.textPrimary,
+    },
+
+    // =========================================================
+    // LOADING ROW
+    // =========================================================
+
+    verifyingRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+        marginTop: SPACING.lg,
+    },
+
+    verifyingText: {
+        marginLeft: SPACING.sm,
+        fontSize: 14,
+        fontFamily: FONTS.bodyMedium,
+        color: COLORS.textSecondary,
+    },
+
+    // =========================================================
+    // SECONDARY ACTION
+    // =========================================================
+
+    secondaryAction: {
+        marginTop: SPACING.xl,
+        paddingVertical: SPACING.md,
+        paddingHorizontal: SPACING.lg,
+        borderRadius: RADIUS.sm,
+        borderWidth: 1.5,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.surface,
+        flexDirection: "row",
+        alignItems: "center",
+        justifyContent: "center",
+    },
+
+    secondaryActionText: {
+        fontSize: 14,
+        fontFamily: FONTS.bodyBold,
+        color: COLORS.primary,
+        marginLeft: 8,
+    },
+
+    // =========================================================
+    // FOOTER
+    // =========================================================
+
+    footer: {
+        marginTop: SPACING.xl,
+        alignItems: "center",
+    },
+
     footerText: {
         color: COLORS.textSecondary,
-        fontSize: 14,
+        fontSize: 13.5,
+        fontFamily: FONTS.body,
+        textAlign: "center",
+        lineHeight: 20,
     },
+
     footerLink: {
         color: COLORS.primary,
-        fontWeight: "700",
-        fontSize: 14,
+        fontFamily: FONTS.bodyBold,
+        fontSize: 13.5,
+    },
+
+    footnote: {
+        textAlign: "center",
+        marginTop: SPACING.lg,
+        fontSize: 11.5,
+        fontFamily: FONTS.body,
+        color: COLORS.textDisabled,
     },
 });

@@ -1,5 +1,7 @@
 import React, { useState } from "react";
+
 import { useRouter } from "expo-router";
+
 import {
     View,
     Text,
@@ -8,115 +10,221 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
-} from "react-native"; // Added Alert & ActivityIndicator
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+} from "react-native";
+
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
 import { Feather } from "@expo/vector-icons";
-import { Checkbox } from "expo-checkbox";
+
 import { LinearGradient } from "expo-linear-gradient";
 
-// Import your styles
+// Styles
 import { styles } from "../styles/screens/signIn.styles";
-import { inputField } from "../styles/blocks/SDInput";
+
+// Theme
 import { COLORS } from "../theme/colors";
 import { GRADIENTS } from "../theme/gradients";
-import { RADIUS } from "../theme/radius";
-import { SPACING } from "../theme/spacing";
-import { signInWithEmail } from "../lib/auth"; // IMPORT AUTH SERVICE
+
+// Auth
+import { signInWithEmail } from "../lib/auth";
 
 export default function SignInScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    // State management
+    // ---------------------------------------------------------
+    // STATE
+    // ---------------------------------------------------------
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+
     const [passwordVisible, setPasswordVisible] = useState(false);
-    const [rememberMe, setRememberMe] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    const [focusedField, setFocusedField] = useState<
+        "email" | "password" | null
+    >(null);
+
     // ---------------------------------------------------------
-    // CONNECTED SIGN IN FUNCTION
+    // SIGN IN
     // ---------------------------------------------------------
     const handleSignIn = async () => {
-        if (!email || !password) {
+        const normalizedEmail = email.trim().toLowerCase();
+
+        if (!normalizedEmail || !password) {
             Alert.alert(
-                "Missing Fields",
+                "Missing Information",
                 "Please enter your email and password.",
             );
             return;
         }
 
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+            Alert.alert("Invalid Email", "Please enter a valid email address.");
+            return;
+        }
+
         setIsLoading(true);
+
         try {
-            await signInWithEmail(email, password);
-            // TODO: In the future, check if TOTP is required here.
-            // For now, navigate straight to the home screen.
-            router.replace("/(tabs)/homeScreen");
+            await signInWithEmail(normalizedEmail, password);
+
+            // Password is correct.
+            // Continue to the dedicated TOTP verification screen.
+            router.replace("/totp");
         } catch (error: any) {
+            console.error("Sign in error:", error);
+
             Alert.alert(
                 "Sign In Failed",
-                error.message || "Invalid credentials.",
+                error?.message ||
+                    "We couldn't sign you in. Please check your credentials and try again.",
             );
-            console.error(error);
         } finally {
             setIsLoading(false);
         }
     };
-    return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <ScrollView
-                style={styles.content}
-                showsVerticalScrollIndicator={false}
-            >
-                {/* HEADER */}
-                <Text style={styles.headerTitle}>Welcome Back</Text>
-                <Text style={styles.headerSubtitle}>
-                    Sign in to access your SafeDrop lockers.
-                </Text>
 
-                {/* LOGIN FORM */}
+    // ---------------------------------------------------------
+    // RENDER
+    // ---------------------------------------------------------
+    return (
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
+            <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingTop: insets.top + 20,
+                        paddingBottom: insets.bottom + 32,
+                    },
+                ]}
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+            >
+                {/* =====================================================
+                    BRAND
+                ===================================================== */}
+                <View style={styles.brandContainer}>
+                    <Image
+                        source={require("../../assets/images/SafeDrop_logo.png")}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                </View>
+
+                {/* =====================================================
+                    HEADER
+                ===================================================== */}
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Welcome Back</Text>
+
+                    <Text style={styles.headerSubtitle}>
+                        Sign in to access your SafeDrop lockers.
+                    </Text>
+                </View>
+
+                {/* =====================================================
+                    LOGIN CARD
+                ===================================================== */}
                 <View style={styles.card}>
-                    {/* USERNAME / EMAIL */}
-                    <View>
-                        <Text style={styles.label}>Username / Email</Text>
-                        <View style={inputField.InputWrapper}>
+                    {/* EMAIL */}
+                    <View style={styles.fieldContainer}>
+                        <Text style={styles.label}>Email Address</Text>
+
+                        <View
+                            style={[
+                                styles.inputWrapper,
+                                focusedField === "email" &&
+                                    styles.inputWrapperFocused,
+                            ]}
+                        >
                             <Feather
                                 name="mail"
-                                size={20}
-                                color={COLORS.textDisabled}
-                                style={{ marginLeft: SPACING.md }}
+                                size={19}
+                                color={
+                                    focusedField === "email"
+                                        ? COLORS.primary
+                                        : COLORS.textDisabled
+                                }
                             />
+
                             <TextInput
-                                style={inputField.TextField}
-                                placeholder="sample@gmail.com"
+                                style={styles.input}
+                                placeholder="you@example.com"
                                 placeholderTextColor={COLORS.textDisabled}
+                                value={email}
+                                onChangeText={setEmail}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
-                                value={email} // ADDED
-                                onChangeText={setEmail} // ADDED
+                                autoCorrect={false}
+                                autoComplete="email"
+                                textContentType="emailAddress"
+                                returnKeyType="next"
+                                onFocus={() => setFocusedField("email")}
+                                onBlur={() => setFocusedField(null)}
                             />
                         </View>
                     </View>
 
                     {/* PASSWORD */}
-                    <View>
-                        <Text style={styles.label}>Password</Text>
-                        <View style={styles.passwordWrapper}>
-                            <TextInput
-                                style={inputField.TextField}
-                                placeholder="**********"
-                                placeholderTextColor={COLORS.textDisabled}
-                                secureTextEntry={!passwordVisible}
-                                value={password} // ADDED
-                                onChangeText={setPassword} // ADDED
-                            />
-                            {/* FIXED: Text is now wrapped in <Text> */}
-                            <Pressable
-                                style={styles.showButton}
-                                onPress={() =>
-                                    setPasswordVisible(!passwordVisible)
+                    <View style={[styles.fieldContainer, styles.passwordField]}>
+                        <View style={styles.passwordLabelRow}>
+                            <Text style={styles.label}>Password</Text>
+                        </View>
+
+                        <View
+                            style={[
+                                styles.inputWrapper,
+                                focusedField === "password" &&
+                                    styles.inputWrapperFocused,
+                            ]}
+                        >
+                            <Feather
+                                name="lock"
+                                size={19}
+                                color={
+                                    focusedField === "password"
+                                        ? COLORS.primary
+                                        : COLORS.textDisabled
                                 }
+                            />
+
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Enter your password"
+                                placeholderTextColor={COLORS.textDisabled}
+                                value={password}
+                                onChangeText={setPassword}
+                                secureTextEntry={!passwordVisible}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                autoComplete="password"
+                                textContentType="password"
+                                returnKeyType="go"
+                                onFocus={() => setFocusedField("password")}
+                                onBlur={() => setFocusedField(null)}
+                                onSubmitEditing={handleSignIn}
+                            />
+
+                            <Pressable
+                                onPress={() =>
+                                    setPasswordVisible((previous) => !previous)
+                                }
+                                hitSlop={10}
+                                style={styles.showButton}
                             >
+                                <Feather
+                                    name={passwordVisible ? "eye-off" : "eye"}
+                                    size={19}
+                                    color={COLORS.primary}
+                                />
+
                                 <Text style={styles.showText}>
                                     {passwordVisible ? "Hide" : "Show"}
                                 </Text>
@@ -124,71 +232,94 @@ export default function SignInScreen() {
                         </View>
                     </View>
 
-                    {/* 6-DIGIT AUTHENTICATOR CODE */}
-                    <View>
-                        <Text style={styles.label}>Authenticator Code</Text>
-                        <View style={styles.otpContainer}>
-                            {[1, 2, 3, 4, 5, 6].map((index) => (
-                                <TextInput
-                                    key={index}
-                                    style={styles.otpInput}
-                                    placeholder="0"
-                                    placeholderTextColor={COLORS.textDisabled}
-                                    keyboardType="number-pad"
-                                    maxLength={1}
-                                />
-                            ))}
+                    {/* SECURITY MESSAGE */}
+                    <View style={styles.securityRow}>
+                        <View style={styles.securityIcon}>
+                            <Feather
+                                name="shield"
+                                size={15}
+                                color={COLORS.success}
+                            />
                         </View>
-                    </View>
 
-                    {/* HELPER UI (Remember Me) */}
-                    <View style={styles.helperRow}>
-                        <Checkbox
-                            value={rememberMe}
-                            onValueChange={setRememberMe}
-                            color={rememberMe ? COLORS.primary : undefined}
-                        />
-                        <Text style={styles.rememberText}>
-                            Remember me for 30 days
+                        <Text style={styles.securityText}>
+                            Your account is protected with two-factor
+                            authentication.
                         </Text>
                     </View>
 
-                    {/* SIGN IN BUTTON WITH GRADIENT */}
-                    <Pressable 
+                    {/* SIGN IN BUTTON */}
+                    <Pressable
                         onPress={handleSignIn}
                         disabled={isLoading}
-                        style={{ marginTop: SPACING.xl }}>
+                        style={styles.buttonWrapper}
+                    >
                         <LinearGradient
                             colors={GRADIENTS.success}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 0 }}
-                            style={{
-                                borderRadius: RADIUS.sm,
-                                height: 56,
-                                justifyContent: "center",
-                                alignItems: "center",
-                                opacity: isLoading ? 0.7 : 1, // Visual feedback
+                            start={{
+                                x: 0,
+                                y: 0,
                             }}
+                            end={{
+                                x: 1,
+                                y: 0,
+                            }}
+                            style={[
+                                styles.signInButton,
+                                isLoading && styles.buttonDisabled,
+                            ]}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color={COLORS.white} />
+                                <>
+                                    <ActivityIndicator
+                                        color={COLORS.white}
+                                        size="small"
+                                    />
+
+                                    <Text style={styles.loadingText}>
+                                        Signing in...
+                                    </Text>
+                                </>
                             ) : (
-                                <Text style={styles.signInButtonText}>Sign In</Text>
+                                <>
+                                    <Text style={styles.signInButtonText}>
+                                        Sign In
+                                    </Text>
+
+                                    <Feather
+                                        name="arrow-right"
+                                        size={19}
+                                        color={COLORS.white}
+                                    />
+                                </>
                             )}
                         </LinearGradient>
                     </Pressable>
                 </View>
 
-                {/* FOOTER (Navigate to Sign Up) */}
+                {/* =====================================================
+                    SIGN UP
+                ===================================================== */}
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>
-                        Don't have an account?{" "}
+                        Don't have an account?
                     </Text>
-                    <Pressable onPress={() => router.replace("/signUp")}>
+
+                    <Pressable
+                        onPress={() => router.replace("/signUp")}
+                        hitSlop={8}
+                    >
                         <Text style={styles.footerLink}>Sign Up</Text>
                     </Pressable>
                 </View>
+
+                {/* =====================================================
+                    FOOTNOTE
+                ===================================================== */}
+                <Text style={styles.footerNote}>
+                    SafeDrop • Secure delivery, simplified.
+                </Text>
             </ScrollView>
-        </View>
+        </KeyboardAvoidingView>
     );
 }

@@ -8,7 +8,10 @@ import {
     ScrollView,
     Alert,
     ActivityIndicator,
-} from "react-native"; // Added Alert & ActivityIndicator
+    Image,
+    KeyboardAvoidingView,
+    Platform,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { Checkbox } from "expo-checkbox";
@@ -16,16 +19,22 @@ import { LinearGradient } from "expo-linear-gradient";
 
 // Styles
 import { styles } from "../styles/screens/signUp.styles";
+
+// Theme
 import { COLORS } from "../theme/colors";
 import { GRADIENTS } from "../theme/gradients";
-import { SPACING } from "../theme/spacing";
-import { signUpWithEmail } from "../lib/auth"; // IMPORT THE AUTH SERVICE
+
+// Auth + TOTP
+import { signUpWithEmail } from "../lib/auth";
+import { generateTOTPSecret } from "../lib/totp";
 
 export default function SignUpScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
 
-    // Form States
+    // ---------------------------------------------------------
+    // FORM STATES
+    // ---------------------------------------------------------
     const [fullName, setFullName] = useState("");
     const [email, setEmail] = useState("");
     const [phone, setPhone] = useState("");
@@ -34,33 +43,37 @@ export default function SignUpScreen() {
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [confirmVisible, setConfirmVisible] = useState(false);
     const [agreedToTerms, setAgreedToTerms] = useState(false);
-    const [isLoading, setIsLoading] = useState(false); // ADDED
+    const [isLoading, setIsLoading] = useState(false);
+    const [focusedField, setFocusedField] = useState<string | null>(null);
 
-    // Simple password strength logic
-    const getStrength = () => {
-        let score = 0;
-        if (password.length >= 8) score++;
-        if (/[A-Z]/.test(password)) score++;
-        if (/[0-9]/.test(password)) score++;
-        if (/[^A-Za-z0-9]/.test(password)) score++;
-        return score;
+    // ---------------------------------------------------------
+    // PASSWORD RULES
+    // ---------------------------------------------------------
+    const rules = {
+        length: password.length >= 8,
+        uppercase: /[A-Z]/.test(password),
+        number: /[0-9]/.test(password),
+        special: /[^A-Za-z0-9]/.test(password),
     };
-    const strength = getStrength();
+    const metCount = Object.values(rules).filter(Boolean).length;
+    const passwordsMatch = password.length > 0 && password === confirmPassword;
 
     // ---------------------------------------------------------
     // CONNECTED SIGN UP FUNCTION
     // ---------------------------------------------------------
     const handleSignUp = async () => {
-        // 1. Validation
-        if (!fullName || !email || !phone || !password) {
+        // 1. VALIDATION
+        if (!fullName.trim() || !email.trim() || !phone.trim() || !password) {
             Alert.alert("Missing Fields", "Please fill in all fields.");
             return;
         }
+
         if (password !== confirmPassword) {
             Alert.alert("Password Mismatch", "Your passwords do not match.");
             return;
         }
-        if (strength < 2) {
+
+        if (metCount < 2) {
             Alert.alert(
                 "Weak Password",
                 "Please use a stronger password (8+ chars, with numbers & uppercase).",
@@ -68,32 +81,67 @@ export default function SignUpScreen() {
             return;
         }
 
-        // 2. Call Supabase
+        if (!agreedToTerms) {
+            Alert.alert(
+                "Terms Required",
+                "Please agree to the Terms of Service and Privacy Policy.",
+            );
+            return;
+        }
+
         setIsLoading(true);
+
         try {
-            await signUpWithEmail({
-                email,
+            const normalizedEmail = email.trim().toLowerCase();
+
+            // 2. CREATE SUPABASE ACCOUNT
+            const authData = await signUpWithEmail({
+                email: normalizedEmail,
                 password,
-                fullName,
-                phone,
+                fullName: fullName.trim(),
+                phone: phone.trim(),
                 role: "customer",
             });
 
-            // 3. Success! Navigate to TOTP setup
+            // 3. VERIFY SESSION
+            if (!authData.user) {
+                throw new Error(
+                    "Supabase did not return a user after registration.",
+                );
+            }
+
+            if (!authData.session) {
+                throw new Error(
+                    "No active session was created. Please disable email confirmation in Supabase Auth before testing TOTP setup.",
+                );
+            }
+
+            // 4. GENERATE TOTP SECRET
+            const { secret, uri } = generateTOTPSecret(normalizedEmail);
+
+            // 5. MOVE TO TOTP SETUP
             Alert.alert(
                 "Account Created!",
                 "Next, let's secure your account with Two-Factor Authentication.",
                 [
                     {
                         text: "Continue",
-                        onPress: () => router.replace("/totpSetup"),
+                        onPress: () =>
+                            router.replace({
+                                pathname: "/totpSetup",
+                                params: {
+                                    secret,
+                                    uri,
+                                    email: normalizedEmail,
+                                },
+                            }),
                     },
                 ],
             );
         } catch (error: any) {
             Alert.alert(
                 "Sign Up Failed",
-                error.message || "Something went wrong.",
+                error?.message || "Something went wrong.",
             );
             console.error(error);
         } finally {
@@ -102,29 +150,74 @@ export default function SignUpScreen() {
     };
 
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <KeyboardAvoidingView
+            style={styles.container}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
             <ScrollView
-                style={styles.content}
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    {
+                        paddingTop: insets.top + 20,
+                        paddingBottom: insets.bottom + 32,
+                    },
+                ]}
                 showsVerticalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
             >
-                {/* HEADER */}
-                <Text style={styles.headerTitle}>Create Account</Text>
-                <Text style={styles.headerSubtitle}>
-                    Join SafeDrop and secure your belongings in seconds.
-                </Text>
+                {/* =====================================================
+                    BRAND
+                ===================================================== */}
+                <View style={styles.brandContainer}>
+                    <Image
+                        source={require("../../assets/images/SafeDrop_logo.png")}
+                        style={styles.logo}
+                        resizeMode="contain"
+                    />
+                </View>
 
-                {/* SIGN UP FORM */}
+                {/* =====================================================
+                    HEADER
+                ===================================================== */}
+                <View style={styles.header}>
+                    <Text style={styles.headerTitle}>Create Account</Text>
+                    <Text style={styles.headerSubtitle}>
+                        Join SafeDrop and secure your belongings in seconds.
+                    </Text>
+                </View>
+
+                {/* =====================================================
+                    FORM CARD
+                ===================================================== */}
                 <View style={styles.card}>
+                    {/* ---------------------------------------------
+                        SECTION 1 — PERSONAL INFORMATION
+                    --------------------------------------------- */}
+                    <View style={styles.sectionHeader}>
+                        <Text style={styles.sectionLabel}>
+                            Personal Information
+                        </Text>
+                        <View style={styles.sectionLine} />
+                    </View>
+
                     {/* FULL NAME */}
-                    <View>
+                    <View style={styles.fieldContainer}>
                         <Text style={styles.label}>Full Name</Text>
-                        <View style={styles.inputWrapper}>
+                        <View
+                            style={[
+                                styles.inputWrapper,
+                                focusedField === "fullName" &&
+                                    styles.inputWrapperFocused,
+                            ]}
+                        >
                             <Feather
                                 name="user"
-                                size={20}
-                                color={COLORS.textDisabled}
-                                style={styles.inputIcon}
+                                size={19}
+                                color={
+                                    focusedField === "fullName"
+                                        ? COLORS.primary
+                                        : COLORS.textDisabled
+                                }
                             />
                             <TextInput
                                 style={styles.input}
@@ -133,41 +226,68 @@ export default function SignUpScreen() {
                                 value={fullName}
                                 onChangeText={setFullName}
                                 autoCapitalize="words"
+                                autoComplete="name"
+                                returnKeyType="next"
+                                onFocus={() => setFocusedField("fullName")}
+                                onBlur={() => setFocusedField(null)}
                             />
                         </View>
                     </View>
 
                     {/* EMAIL */}
-                    <View>
+                    <View style={[styles.fieldContainer, styles.fieldSpacer]}>
                         <Text style={styles.label}>Email Address</Text>
-                        <View style={styles.inputWrapper}>
+                        <View
+                            style={[
+                                styles.inputWrapper,
+                                focusedField === "email" &&
+                                    styles.inputWrapperFocused,
+                            ]}
+                        >
                             <Feather
                                 name="mail"
-                                size={20}
-                                color={COLORS.textDisabled}
-                                style={styles.inputIcon}
+                                size={19}
+                                color={
+                                    focusedField === "email"
+                                        ? COLORS.primary
+                                        : COLORS.textDisabled
+                                }
                             />
                             <TextInput
                                 style={styles.input}
-                                placeholder="MariaFe@gmail.com"
+                                placeholder="you@example.com"
                                 placeholderTextColor={COLORS.textDisabled}
                                 value={email}
                                 onChangeText={setEmail}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
+                                autoCorrect={false}
+                                autoComplete="email"
+                                returnKeyType="next"
+                                onFocus={() => setFocusedField("email")}
+                                onBlur={() => setFocusedField(null)}
                             />
                         </View>
                     </View>
 
-                    {/* PHONE NUMBER */}
-                    <View>
+                    {/* PHONE */}
+                    <View style={[styles.fieldContainer, styles.fieldSpacer]}>
                         <Text style={styles.label}>Phone Number</Text>
-                        <View style={styles.inputWrapper}>
+                        <View
+                            style={[
+                                styles.inputWrapper,
+                                focusedField === "phone" &&
+                                    styles.inputWrapperFocused,
+                            ]}
+                        >
                             <Feather
                                 name="phone"
-                                size={20}
-                                color={COLORS.textDisabled}
-                                style={styles.inputIcon}
+                                size={19}
+                                color={
+                                    focusedField === "phone"
+                                        ? COLORS.primary
+                                        : COLORS.textDisabled
+                                }
                             />
                             <TextInput
                                 style={styles.input}
@@ -176,19 +296,40 @@ export default function SignUpScreen() {
                                 value={phone}
                                 onChangeText={setPhone}
                                 keyboardType="phone-pad"
+                                autoComplete="tel"
+                                returnKeyType="next"
+                                onFocus={() => setFocusedField("phone")}
+                                onBlur={() => setFocusedField(null)}
                             />
                         </View>
                     </View>
 
+                    {/* ---------------------------------------------
+                        SECTION 2 — SECURITY
+                    --------------------------------------------- */}
+                    <View style={[styles.sectionHeader, styles.sectionSpacer]}>
+                        <Text style={styles.sectionLabel}>Security</Text>
+                        <View style={styles.sectionLine} />
+                    </View>
+
                     {/* PASSWORD */}
-                    <View>
+                    <View style={styles.fieldContainer}>
                         <Text style={styles.label}>Password</Text>
-                        <View style={styles.passwordWrapper}>
+                        <View
+                            style={[
+                                styles.inputWrapper,
+                                focusedField === "password" &&
+                                    styles.inputWrapperFocused,
+                            ]}
+                        >
                             <Feather
                                 name="lock"
-                                size={20}
-                                color={COLORS.textDisabled}
-                                style={styles.inputIcon}
+                                size={19}
+                                color={
+                                    focusedField === "password"
+                                        ? COLORS.primary
+                                        : COLORS.textDisabled
+                                }
                             />
                             <TextInput
                                 style={styles.input}
@@ -197,45 +338,71 @@ export default function SignUpScreen() {
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry={!passwordVisible}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                onFocus={() => setFocusedField("password")}
+                                onBlur={() => setFocusedField(null)}
                             />
                             <Pressable
+                                onPress={() => setPasswordVisible((p) => !p)}
+                                hitSlop={10}
                                 style={styles.showButton}
-                                onPress={() =>
-                                    setPasswordVisible(!passwordVisible)
-                                }
                             >
+                                <Feather
+                                    name={passwordVisible ? "eye-off" : "eye"}
+                                    size={19}
+                                    color={COLORS.primary}
+                                />
                                 <Text style={styles.showText}>
                                     {passwordVisible ? "Hide" : "Show"}
                                 </Text>
                             </Pressable>
                         </View>
 
-                        {/* PASSWORD STRENGTH METER */}
+                        {/* LIVE REQUIREMENTS CHECKLIST */}
                         {password.length > 0 && (
-                            <View style={styles.strengthContainer}>
-                                {[1, 2, 3, 4].map((i) => (
-                                    <View
-                                        key={i}
-                                        style={[
-                                            styles.strengthBar,
-                                            i <= strength &&
-                                                styles.strengthBarActive,
-                                        ]}
-                                    />
-                                ))}
+                            <View style={styles.requirementsContainer}>
+                                <RequirementRow
+                                    met={rules.length}
+                                    text="At least 8 characters"
+                                />
+                                <RequirementRow
+                                    met={rules.uppercase}
+                                    text="Contains an uppercase letter"
+                                />
+                                <RequirementRow
+                                    met={rules.number}
+                                    text="Contains a number"
+                                />
+                                <RequirementRow
+                                    met={rules.special}
+                                    text="Contains a special character"
+                                />
                             </View>
                         )}
                     </View>
 
                     {/* CONFIRM PASSWORD */}
-                    <View>
+                    <View style={[styles.fieldContainer, styles.fieldSpacer]}>
                         <Text style={styles.label}>Confirm Password</Text>
-                        <View style={styles.passwordWrapper}>
+                        <View
+                            style={[
+                                styles.inputWrapper,
+                                focusedField === "confirm" &&
+                                    styles.inputWrapperFocused,
+                                confirmPassword.length > 0 &&
+                                    !passwordsMatch &&
+                                    styles.inputWrapperError,
+                            ]}
+                        >
                             <Feather
                                 name="lock"
-                                size={20}
-                                color={COLORS.textDisabled}
-                                style={styles.inputIcon}
+                                size={19}
+                                color={
+                                    focusedField === "confirm"
+                                        ? COLORS.primary
+                                        : COLORS.textDisabled
+                                }
                             />
                             <TextInput
                                 style={styles.input}
@@ -244,42 +411,64 @@ export default function SignUpScreen() {
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry={!confirmVisible}
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                                onFocus={() => setFocusedField("confirm")}
+                                onBlur={() => setFocusedField(null)}
                             />
                             <Pressable
+                                onPress={() => setConfirmVisible((p) => !p)}
+                                hitSlop={10}
                                 style={styles.showButton}
-                                onPress={() =>
-                                    setConfirmVisible(!confirmVisible)
-                                }
                             >
+                                <Feather
+                                    name={confirmVisible ? "eye-off" : "eye"}
+                                    size={19}
+                                    color={COLORS.primary}
+                                />
                                 <Text style={styles.showText}>
                                     {confirmVisible ? "Hide" : "Show"}
                                 </Text>
                             </Pressable>
                         </View>
+
+                        {confirmPassword.length > 0 && !passwordsMatch && (
+                            <Text style={styles.inlineError}>
+                                Passwords do not match.
+                            </Text>
+                        )}
                     </View>
 
-                    {/* TERMS & CONDITIONS */}
-                    <View style={styles.helperRow}>
+                    {/* ---------------------------------------------
+                        SECTION 3 — AGREEMENT
+                    --------------------------------------------- */}
+                    <View style={styles.agreementRow}>
                         <Checkbox
                             value={agreedToTerms}
                             onValueChange={setAgreedToTerms}
                             color={agreedToTerms ? COLORS.primary : undefined}
+                            style={{ marginTop: 2 }}
                         />
-                        <Text style={styles.rememberText}>
+                        <Text style={styles.agreementText}>
                             I agree to the{" "}
-                            <Text style={styles.linkText}>
+                            <Text style={styles.agreementLink}>
                                 Terms of Service
                             </Text>{" "}
                             and{" "}
-                            <Text style={styles.linkText}>Privacy Policy</Text>
+                            <Text style={styles.agreementLink}>
+                                Privacy Policy
+                            </Text>
+                            .
                         </Text>
                     </View>
 
-                    {/* SIGN UP BUTTON WITH GRADIENT */}
+                    {/* ---------------------------------------------
+                        SUBMIT
+                    --------------------------------------------- */}
                     <Pressable
-                        style={{ marginTop: SPACING.xl }}
                         onPress={handleSignUp}
-                        disabled={!agreedToTerms || isLoading} // Disable if loading
+                        disabled={isLoading}
+                        style={styles.buttonWrapper}
                     >
                         <LinearGradient
                             colors={GRADIENTS.primary}
@@ -287,32 +476,85 @@ export default function SignUpScreen() {
                             end={{ x: 1, y: 0 }}
                             style={[
                                 styles.signUpButton,
-                                (!agreedToTerms || isLoading) && {
-                                    opacity: 0.5,
-                                },
+                                isLoading && styles.buttonDisabled,
                             ]}
                         >
                             {isLoading ? (
-                                <ActivityIndicator color={COLORS.white} />
+                                <>
+                                    <ActivityIndicator
+                                        color={COLORS.white}
+                                        size="small"
+                                    />
+                                    <Text style={styles.loadingText}>
+                                        Creating your account...
+                                    </Text>
+                                </>
                             ) : (
-                                <Text style={styles.signUpButtonText}>
-                                    Create Account
-                                </Text>
+                                <>
+                                    <Text style={styles.signUpButtonText}>
+                                        Create Account
+                                    </Text>
+                                    <Feather
+                                        name="arrow-right"
+                                        size={19}
+                                        color={COLORS.white}
+                                        style={{ marginLeft: 8 }}
+                                    />
+                                </>
                             )}
                         </LinearGradient>
                     </Pressable>
                 </View>
 
-                {/* FOOTER - Navigate to Sign In */}
+                {/* =====================================================
+                    FOOTER
+                ===================================================== */}
                 <View style={styles.footer}>
                     <Text style={styles.footerText}>
-                        Already have an account?{" "}
+                        Already have an account?
                     </Text>
-                    <Pressable onPress={() => router.replace("/signIn")}>
+                    <Pressable
+                        onPress={() => router.replace("/signIn")}
+                        hitSlop={8}
+                    >
                         <Text style={styles.footerLink}>Sign In</Text>
                     </Pressable>
                 </View>
+
+                <Text style={styles.footerNote}>
+                    SafeDrop • Secure delivery, simplified.
+                </Text>
             </ScrollView>
+        </KeyboardAvoidingView>
+    );
+}
+
+// =========================================================
+// SMALL SUB-COMPONENT — REQUIREMENT ROW
+// =========================================================
+function RequirementRow({ met, text }: { met: boolean; text: string }) {
+    return (
+        <View style={styles.requirementRow}>
+            <View
+                style={[
+                    styles.requirementIconWrap,
+                    met && styles.requirementIconWrapMet,
+                ]}
+            >
+                <Feather
+                    name={met ? "check" : "circle"}
+                    size={met ? 12 : 8}
+                    color={met ? COLORS.success : COLORS.textDisabled}
+                />
+            </View>
+            <Text
+                style={[
+                    styles.requirementText,
+                    met && styles.requirementTextMet,
+                ]}
+            >
+                {text}
+            </Text>
         </View>
     );
 }
