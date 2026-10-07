@@ -185,7 +185,7 @@ export default function TOTPScreen() {
                     }
 
                     Alert.alert(
-                        "2FA Enabled! 🎉",
+                        "2FA Enabled!",
                         "Your account is now secured with two-factor authentication.",
                         [
                             {

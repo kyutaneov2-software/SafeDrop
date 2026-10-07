@@ -80,7 +80,7 @@ export default function HomeScreen() {
                                 />
                             ) : (
                                 <Text style={styles.greetingName}>
-                                    {firstName} 👋
+                                    {firstName}
                                 </Text>
                             )}
                         </View>
@@ -162,7 +162,7 @@ export default function HomeScreen() {
                             onPress={() => {
                                 // Phase 2 → choose locker flow.
                                 // Placeholder nav for now.
-                                router.push("/totpSetup");
+                                router.reload();
                             }}
                         >
                             <LinearGradient
