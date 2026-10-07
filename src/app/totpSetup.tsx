@@ -30,7 +30,7 @@ export default function TOTPSetupScreen() {
     const email = typeof params.email === "string" ? params.email : "";
 
     // ---------------------------------------------------------
-    // LOCAL UI STATE (only additions — no logic changed)
+    // LOCAL UI STATE
     // ---------------------------------------------------------
     const [showManual, setShowManual] = useState(false);
     const [copied, setCopied] = useState(false);
@@ -81,6 +81,28 @@ export default function TOTPSetupScreen() {
         });
     };
 
+    // ---------------------------------------------------------
+    // BACK BUTTON HANDLER — guards against accidental exit
+    // ---------------------------------------------------------
+    const handleBack = () => {
+        Alert.alert(
+            "Cancel Setup?",
+            "You'll be signed out. You can complete 2FA the next time you sign up.",
+            [
+                { text: "Stay", style: "cancel" },
+                {
+                    text: "Sign Out",
+                    style: "destructive",
+                    onPress: async () => {
+                        const { signOut } = await import("../lib/auth");
+                        await signOut();
+                        router.replace("/signIn");
+                    },
+                },
+            ],
+        );
+    };
+
     // Format secret in groups of 4 for readability
     const formattedSecret = secretKey
         ? (secretKey.match(/.{1,4}/g)?.join(" ") ?? secretKey)
@@ -92,7 +114,7 @@ export default function TOTPSetupScreen() {
             <View style={styles.header}>
                 <Pressable
                     style={styles.backButton}
-                    onPress={() => router.back()}
+                    onPress={handleBack}
                     hitSlop={10}
                 >
                     <Feather

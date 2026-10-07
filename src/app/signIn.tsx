@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-
 import { useRouter } from "expo-router";
-
 import {
     View,
     Text,
@@ -14,11 +12,8 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from "react-native";
-
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { Feather } from "@expo/vector-icons";
-
 import { LinearGradient } from "expo-linear-gradient";
 
 // Styles
@@ -30,6 +25,7 @@ import { GRADIENTS } from "../theme/gradients";
 
 // Auth
 import { signInWithEmail } from "../lib/auth";
+import { supabase } from "../lib/supabase";
 
 export default function SignInScreen() {
     const router = useRouter();
@@ -40,10 +36,8 @@ export default function SignInScreen() {
     // ---------------------------------------------------------
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-
     const [passwordVisible, setPasswordVisible] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-
     const [focusedField, setFocusedField] = useState<
         "email" | "password" | null
     >(null);
@@ -70,14 +64,35 @@ export default function SignInScreen() {
         setIsLoading(true);
 
         try {
-            await signInWithEmail(normalizedEmail, password);
+            const authData = await signInWithEmail(normalizedEmail, password);
 
-            // Password is correct.
-            // Continue to the dedicated TOTP verification screen.
-            router.replace("/totp");
+            // Check if this user has completed TOTP setup
+            const { data: totp } = await supabase
+                .from("user_totp")
+                .select("is_enabled")
+                .eq("id", authData.user.id)
+                .maybeSingle();
+
+            if (totp?.is_enabled) {
+                // Normal flow → prompt for TOTP code
+                router.replace("/totp");
+            } else {
+                // Abandoned setup → sign out and force fresh signup
+                const { signOut } = await import("../lib/auth");
+                await signOut();
+                Alert.alert(
+                    "Setup Incomplete",
+                    "Your account wasn't fully set up. Please create a new account.",
+                    [
+                        {
+                            text: "OK",
+                            onPress: () => router.replace("/signUp"),
+                        },
+                    ],
+                );
+            }
         } catch (error: any) {
             console.error("Sign in error:", error);
-
             Alert.alert(
                 "Sign In Failed",
                 error?.message ||
@@ -123,7 +138,6 @@ export default function SignInScreen() {
                 ===================================================== */}
                 <View style={styles.header}>
                     <Text style={styles.headerTitle}>Welcome Back</Text>
-
                     <Text style={styles.headerSubtitle}>
                         Sign in to access your SafeDrop lockers.
                     </Text>
@@ -224,7 +238,6 @@ export default function SignInScreen() {
                                     size={19}
                                     color={COLORS.primary}
                                 />
-
                                 <Text style={styles.showText}>
                                     {passwordVisible ? "Hide" : "Show"}
                                 </Text>
@@ -241,7 +254,6 @@ export default function SignInScreen() {
                                 color={COLORS.success}
                             />
                         </View>
-
                         <Text style={styles.securityText}>
                             Your account is protected with two-factor
                             authentication.
@@ -256,14 +268,8 @@ export default function SignInScreen() {
                     >
                         <LinearGradient
                             colors={GRADIENTS.success}
-                            start={{
-                                x: 0,
-                                y: 0,
-                            }}
-                            end={{
-                                x: 1,
-                                y: 0,
-                            }}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 0 }}
                             style={[
                                 styles.signInButton,
                                 isLoading && styles.buttonDisabled,
@@ -275,7 +281,6 @@ export default function SignInScreen() {
                                         color={COLORS.white}
                                         size="small"
                                     />
-
                                     <Text style={styles.loadingText}>
                                         Signing in...
                                     </Text>
@@ -285,7 +290,6 @@ export default function SignInScreen() {
                                     <Text style={styles.signInButtonText}>
                                         Sign In
                                     </Text>
-
                                     <Feather
                                         name="arrow-right"
                                         size={19}
@@ -304,7 +308,6 @@ export default function SignInScreen() {
                     <Text style={styles.footerText}>
                         Don't have an account?
                     </Text>
-
                     <Pressable
                         onPress={() => router.replace("/signUp")}
                         hitSlop={8}

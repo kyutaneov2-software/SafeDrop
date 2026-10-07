@@ -12,12 +12,16 @@ export default function AlertsScreen() {
     return (
         <View style={[styles.placeholderContainer, { paddingTop: insets.top }]}>
             <View style={styles.placeholderIcon}>
-                <Feather name="bell" size={30} color={COLORS.textDisabled} />
+                <Feather
+                    name="bell-off"
+                    size={30}
+                    color={COLORS.textDisabled}
+                />
             </View>
-            <Text style={styles.placeholderTitle}>No Alerts Yet</Text>
+            <Text style={styles.placeholderTitle}>You're All Caught Up</Text>
             <Text style={styles.placeholderSubtitle}>
-                Notifications about your deliveries and locker activity will
-                show up here.
+                Notifications about your parcel deliveries and locker activity
+                will appear here.
             </Text>
         </View>
     );

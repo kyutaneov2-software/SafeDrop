@@ -239,15 +239,35 @@ export default function TOTPScreen() {
         if (isComplete && !isVerifying && !hasAutoVerified.current) {
             hasAutoVerified.current = true;
             const fullCode = code.join("");
-            // Small delay so the last digit visibly renders
             setTimeout(() => handleVerify(fullCode), 180);
         }
 
-        // Reset the guard when the code is cleared (e.g., after an error)
         if (!isComplete) {
             hasAutoVerified.current = false;
         }
     }, [code, isVerifying, handleVerify]);
+
+    // ---------------------------------------------------------
+    // BACK BUTTON HANDLER — guards against accidental exit
+    // ---------------------------------------------------------
+    const handleBack = () => {
+        Alert.alert(
+            "Cancel Verification?",
+            "You'll be signed out and can log in again anytime.",
+            [
+                { text: "Stay", style: "cancel" },
+                {
+                    text: "Sign Out",
+                    style: "destructive",
+                    onPress: async () => {
+                        const { signOut } = await import("../lib/auth");
+                        await signOut();
+                        router.replace("/signIn");
+                    },
+                },
+            ],
+        );
+    };
 
     // ---------------------------------------------------------
     // RENDER
@@ -259,13 +279,11 @@ export default function TOTPScreen() {
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
             >
-                {/* =====================================================
-                    HEADER
-                ===================================================== */}
+                {/* HEADER */}
                 <View style={styles.header}>
                     <Pressable
                         style={styles.backButton}
-                        onPress={() => router.back()}
+                        onPress={handleBack}
                         disabled={isVerifying}
                         hitSlop={10}
                     >
@@ -277,11 +295,8 @@ export default function TOTPScreen() {
                     </Pressable>
                 </View>
 
-                {/* =====================================================
-                    CONTENT
-                ===================================================== */}
+                {/* CONTENT */}
                 <View style={styles.content}>
-                    {/* SHIELD ICON */}
                     <View style={styles.iconContainer}>
                         <Feather
                             name="shield"
@@ -290,14 +305,12 @@ export default function TOTPScreen() {
                         />
                     </View>
 
-                    {/* TITLE */}
                     <Text style={styles.title}>
                         {isSetupMode
                             ? "Verify Your Setup"
                             : "Verify Your Identity"}
                     </Text>
 
-                    {/* SUBTITLE */}
                     <Text style={styles.subtitle}>
                         {isSetupMode
                             ? "Enter the 6-digit code from your authenticator app to confirm setup."

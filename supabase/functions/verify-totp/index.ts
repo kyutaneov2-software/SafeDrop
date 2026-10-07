@@ -12,13 +12,9 @@ export default {
         { auth: "user" },
 
         async (req, ctx) => {
-            // Only accept POST requests
             if (req.method !== "POST") {
                 return Response.json(
-                    {
-                        success: false,
-                        error: "Method not allowed",
-                    },
+                    { success: false, error: "Method not allowed" },
                     { status: 405 },
                 );
             }
@@ -27,10 +23,16 @@ export default {
                 // --------------------------------------------------
                 // 1. Get authenticated user
                 // --------------------------------------------------
+                // The @supabase/server package exposes the auth user
+                // UUID at the top level of userClaims as `id`.
                 const userId = ctx.userClaims?.id;
                 const userEmail = ctx.userClaims?.email ?? "";
 
                 if (!userId) {
+                    console.error(
+                        "Missing user ID in JWT claims:",
+                        JSON.stringify(ctx.userClaims),
+                    );
                     return Response.json(
                         {
                             success: false,
@@ -48,7 +50,6 @@ export default {
                 const code = String(body.code ?? "").replace(/\s/g, "");
                 const isSetup = body.isSetup === true;
 
-                // Secret is ONLY expected during setup.
                 const providedSecret =
                     typeof body.secret === "string"
                         ? body.secret.trim().toUpperCase()
@@ -73,8 +74,6 @@ export default {
                 let secretToVerify = "";
 
                 if (isSetup) {
-                    // SETUP MODE
-                    // The mobile app sends the newly generated secret.
                     if (!providedSecret) {
                         return Response.json(
                             {
@@ -84,13 +83,8 @@ export default {
                             { status: 400 },
                         );
                     }
-
                     secretToVerify = providedSecret;
                 } else {
-                    // LOGIN MODE
-                    // NEVER accept a secret from the mobile app.
-                    // Fetch it from the database instead.
-
                     const { data, error } = await ctx.supabaseAdmin
                         .from("user_totp")
                         .select("secret, is_enabled")
@@ -102,7 +96,6 @@ export default {
                             "Failed to fetch TOTP record:",
                             error.message,
                         );
-
                         return Response.json(
                             {
                                 success: false,
@@ -140,8 +133,6 @@ export default {
                 // --------------------------------------------------
                 // 6. Verify the code
                 // --------------------------------------------------
-                // window: 1 allows the current 30-second interval plus
-                // one adjacent interval to tolerate small clock differences.
                 const delta = totp.validate({
                     token: code,
                     window: 1,
@@ -158,42 +149,72 @@ export default {
                 }
 
                 // --------------------------------------------------
-                // 7. SETUP MODE: save verified secret
+                // 7. SETUP MODE — save verified secret
                 // --------------------------------------------------
                 if (isSetup) {
-                    const { error: upsertError } = await ctx.supabaseAdmin
-                        .from("user_totp")
-                        .upsert(
-                            {
-                                id: userId,
-                                secret: secretToVerify,
-                                is_enabled: true,
-                            },
-                            {
-                                onConflict: "id",
-                            },
-                        );
+                    console.log("=== SAVE START ===");
+                    console.log("userId        :", userId);
+                    console.log("email         :", userEmail);
+                    console.log("secret length :", secretToVerify.length);
+
+                    const { data: savedData, error: upsertError } =
+                        await ctx.supabaseAdmin
+                            .from("user_totp")
+                            .upsert(
+                                {
+                                    id: userId,
+                                    secret: secretToVerify,
+                                    is_enabled: true,
+                                },
+                                { onConflict: "id" },
+                            )
+                            .select()
+                            .single();
+
+                    console.log("Upsert returned:", JSON.stringify(savedData));
+                    console.log(
+                        "Upsert error   :",
+                        JSON.stringify(upsertError),
+                    );
 
                     if (upsertError) {
                         console.error(
                             "Failed to save TOTP secret:",
                             upsertError.message,
                         );
-
                         return Response.json(
                             {
                                 success: false,
                                 error: "Code verified, but TOTP setup could not be saved",
+                                details: upsertError.message,
                             },
                             { status: 500 },
                         );
                     }
+
+                    // Read-back confirmation
+                    const { data: verifyRead, error: readError } =
+                        await ctx.supabaseAdmin
+                            .from("user_totp")
+                            .select("id, is_enabled, secret")
+                            .eq("id", userId)
+                            .maybeSingle();
+
+                    console.log(
+                        "Verification read:",
+                        JSON.stringify(verifyRead),
+                    );
+                    console.log(
+                        "Read error       :",
+                        JSON.stringify(readError),
+                    );
 
                     console.log(`TOTP setup completed for user ${userId}`);
 
                     return Response.json({
                         success: true,
                         mode: "setup",
+                        savedId: userId,
                     });
                 }
 
